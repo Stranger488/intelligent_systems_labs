@@ -2,25 +2,23 @@ import numpy as np
 
 
 class SudokuBoard:
-    def __init__(self, board):
-        self.grid = np.copy(board)
+    def __init__(self, grid):
+        self.grid = np.copy(grid)
         self.base = int(np.sqrt(self.grid.shape[0]))
         self.dim = self.base * self.base
 
         self.min_length = self.dim
-        self.update_min_length(self.dim)
 
         self.fitness = np.inf
         self.update_fitness()
+
+        self.best_cell_row, self.best_cell_col, self.cur_candidates, self.min_length = self.get_most_constrained_cell()
 
     def get_square_i(self, row_i, col_i):
         square_row_i = row_i // self.base
         square_col_i = col_i // self.base
 
         return square_row_i, square_col_i
-
-    def update_min_length(self, min_length):
-        self.min_length = min_length
 
     def update_fitness(self):
         empty_cells = 0
@@ -58,7 +56,8 @@ class SudokuBoard:
 
         return result_row_i, result_col_i, result_candidates, min_length
 
-    def get_len_of_candidate_values(self, candidate_values):
+    @staticmethod
+    def get_len_of_candidate_values(candidate_values):
         count = 0
 
         for mask in candidate_values:
@@ -130,3 +129,17 @@ class SudokuBoard:
                                 tmp_values[value - 1] = True
 
         return True
+
+    def generate_children_for_board(self):
+        tmp_boards_lst = []
+
+        for candidate_value in self.cur_candidates:
+            tmp_board = SudokuBoard(self.grid)
+            tmp_board.best_cell_row, tmp_board.best_cell_col, tmp_board.cur_candidates, tmp_board.min_length \
+                = tmp_board.get_most_constrained_cell()
+            tmp_board.grid[self.best_cell_row, self.best_cell_col] = candidate_value
+            tmp_board.update_fitness()
+
+            tmp_boards_lst.append(tmp_board)
+
+        return tmp_boards_lst

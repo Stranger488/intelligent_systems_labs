@@ -6,7 +6,7 @@ from board import SudokuBoard
 # Алгоритм локального кооперативного k-лучевого поиска
 class SudokuSolver:
     def __init__(self, base_sudoku, k):
-        self.MAX_ITER_COUNT = 50
+        self.MAX_ITER_COUNT = 300
         self.k = k
 
         self.base_board = SudokuBoard(base_sudoku)
@@ -45,32 +45,26 @@ class SudokuSolver:
         return result_board.grid
 
     def erase_current_boards(self):
+        # self.union_boards()
         self.current_boards.sort(key=lambda x: x.fitness)
         self.current_boards = self.current_boards[:self.k]
 
         return self.current_boards[0]
 
+    def union_boards(self):
+        unique_boards = []
+        unique_fitnesses = []
+        for board in self.current_boards:
+            if board.fitness not in unique_fitnesses:
+                unique_boards.append(board)
+                unique_fitnesses.append(board.fitness)
+        self.current_boards = unique_boards
+
     def generate_children_boards(self):
         tmp_all_arr = []
         for board in self.current_boards:
-            tmp_all_arr.extend(self.generate_children_for_board(board))
+            tmp_all_arr.extend(board.generate_children_for_board())
         self.current_boards.extend(tmp_all_arr)
-
-    @staticmethod
-    def generate_children_for_board(board):
-        tmp_boards_lst = []
-        best_cell_row, best_cell_col, candidates, min_length = \
-            board.get_most_constrained_cell()
-
-        for candidate_value in candidates:
-            tmp_board = SudokuBoard(board.grid)
-            tmp_board.grid[best_cell_row, best_cell_col] = candidate_value
-            tmp_board.update_min_length(min_length - 1)
-            tmp_board.update_fitness()
-
-            tmp_boards_lst.append(tmp_board)
-
-        return tmp_boards_lst
 
     def solve_with_time(self, steps=True):
         ts = time.time()
