@@ -12,9 +12,9 @@ class SudokuBoard:
         self.min_length = self.dim
 
         self.fitness = inf
-        self.update_fitness()
-
         self.best_cell_row, self.best_cell_col, self.cur_candidates, self.min_length = self.get_most_constrained_cell()
+
+        self.update_fitness()
 
     def get_square_i(self, row_i, col_i):
         square_row_i = row_i // self.base
@@ -34,8 +34,8 @@ class SudokuBoard:
         self.fitness = empty_cells + self.min_length
 
     def get_most_constrained_cell(self):
-        result_row_i = 0
-        result_col_i = 0
+        result_row_i = -1
+        result_col_i = -1
 
         min_length = self.dim + 1
         min_candidates = []
