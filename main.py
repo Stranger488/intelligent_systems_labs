@@ -1,5 +1,4 @@
 import numpy as np
-import time
 
 import solver as sudoku_solver
 import plot as sudoku_plot
@@ -20,8 +19,22 @@ sudoku_table = np.array([
     [2, 0, 4,   0, 0, 8,    0, 0, 0],
 ], dtype=int)
 
+# sudoku_table = np.array([
+#     [2, 0, 3,   0, 0, 5,    0, 0, 0],
+#     [0, 0, 0,   0, 0, 3,    1, 0, 9],
+#     [0, 9, 0,   0, 0, 0,    0, 2, 0],
+#
+#     [0, 0, 0,   6, 0, 1,    2, 0, 0],
+#     [0, 5, 0,   0, 0, 9,    0, 7, 1],
+#     [0, 0, 7,   0, 0, 0,    0, 0, 0],
+#
+#     [0, 6, 0,   0, 0, 7,    0, 0, 0],
+#     [0, 0, 4,   0, 9, 0,    0, 0, 0],
+#     [0, 0, 0,   0, 0, 2,    7, 8, 5],
+# ], dtype=int)
+
 # Ширина поиска
-k = 20
+k = 17
 
 
 def main():
