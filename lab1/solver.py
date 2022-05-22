@@ -45,7 +45,7 @@ class SudokuSolver:
             self.current_boards, res_board = self.erase_boards(tmp_all_arr)
             count += 1
 
-        if res_board is None or count >= self.MAX_ITER_COUNT:
+        if count >= self.MAX_ITER_COUNT:
             raise ValueError("Невозможно решить заданный судоку")
 
         if not res_board.is_valid(ignore_nulls=False):
