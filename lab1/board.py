@@ -34,8 +34,8 @@ class SudokuBoard:
         self.fitness = empty_cells + self.min_length
 
     def get_most_constrained_cell(self):
-        result_row_i = 0
-        result_col_i = 0
+        result_row_i = -1
+        result_col_i = -1
 
         min_length = self.dim + 1
         min_candidates = []

@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 
 import solver as sudoku_solver
@@ -18,11 +19,8 @@ sudoku_table = np.array([
     [2, 0, 4,   0, 0, 8,    0, 0, 0],
 ], dtype=int)
 
-# Ширина поиска
-k = 13
 
-
-def main():
+def main(k=50):
     solver = sudoku_solver.SudokuSolver(sudoku_table, k)
     plotter = sudoku_plot.SudokuPlot.make_board_printer(solver.base_board.base)
 
@@ -38,4 +36,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('--k', action='store', type=int,
+                            help='Параметр k алгоритма')
+    arguments = arg_parser.parse_args()
+
+    main(arguments.k)

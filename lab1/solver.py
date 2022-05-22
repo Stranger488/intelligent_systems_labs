@@ -21,7 +21,7 @@ class SudokuSolver:
     def solve(self, steps=True):
         count = 0
         res_board = self.base_board
-        prev_board = SudokuBoard(np.full((self.base_board.dim, self.base_board.dim), 0, dtype=int))
+        prev_board = SudokuBoard(np.full((self.base_board.dim, self.base_board.dim), -1, dtype=int))
 
         while count < self.MAX_ITER_COUNT and res_board.fitness > 0 \
                 and not res_board.equals(prev_board):
@@ -32,14 +32,17 @@ class SudokuSolver:
                 print("Значение эвристики: {}\n\n".format(res_board.fitness))
 
             # Генерация k потомков текущего поколения
-            self.generate_children_boards()
+            tmp_all_arr = self.generate_children_boards(self.current_boards)
             # Обновляем их значения fitness и отбираем k досок
-            self.erase_current_boards()
+            tmp_all_arr, _ = self.erase_boards(tmp_all_arr)
 
-            # Генерируем из общего множества еще k потомков
-            self.generate_children_boards()
+            # Генерируем из полученного поколения еще k потомков
+            next_tmp_all_arr = self.generate_children_boards(tmp_all_arr)
+            tmp_all_arr.extend(next_tmp_all_arr)
+
             prev_board = res_board
-            res_board = self.erase_current_boards()
+            # В общем полученном множестве отбираем k элементов
+            self.current_boards, res_board = self.erase_boards(tmp_all_arr)
             count += 1
 
         if res_board is None or count >= self.MAX_ITER_COUNT:
@@ -50,25 +53,27 @@ class SudokuSolver:
 
         return res_board.grid
 
-    def erase_current_boards(self):
-        self.union_boards()
-        self.current_boards.sort(key=lambda x: x.fitness)
-        self.current_boards = self.current_boards[:self.k]
+    def erase_boards(self, boards_arr):
+        self.union_boards(boards_arr)
+        boards_arr.sort(key=lambda x: x.fitness)
+        boards_arr = boards_arr[:self.k]
 
-        return self.current_boards[0]
+        return boards_arr, boards_arr[0]
 
-    def union_boards(self):
-        for i, board_outer in enumerate(self.current_boards):
-            for j, board_inner in enumerate(self.current_boards):
+    @staticmethod
+    def union_boards(boards_arr):
+        for i, board_outer in enumerate(boards_arr):
+            for j, board_inner in enumerate(boards_arr):
                 if i != j:
                     if board_outer.equals(board_inner):
-                        self.current_boards.remove(board_inner)
+                        boards_arr.remove(board_inner)
 
-    def generate_children_boards(self):
+    @staticmethod
+    def generate_children_boards(boards_arr):
         tmp_all_arr = []
-        for board in self.current_boards:
+        for board in boards_arr:
             tmp_all_arr.extend(board.generate_children_for_board())
-        self.current_boards.extend(tmp_all_arr)
+        return tmp_all_arr
 
     def solve_with_time(self, steps=True):
         ts = time.time()
