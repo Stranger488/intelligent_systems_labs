@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 import plot as sudoku_plt
-from board import SudokuBoard
+from board_mod import SudokuBoard
 
 
 # Алгоритм локального кооперативного k-лучевого поиска
@@ -17,7 +17,9 @@ class SudokuSolver:
         if not self.base_board.is_valid():
             raise ValueError("Некорректный исходный судоку!")
 
+        self.base_board.initialize_board()
         self.current_boards = [self.base_board, ]
+        self.base_board.permutate_board()
 
     def solve(self, steps=True):
         count = 0
@@ -73,11 +75,10 @@ class SudokuSolver:
                     if board_outer.equals(board_inner):
                         boards_arr.remove(board_inner)
 
-    @staticmethod
-    def generate_children_boards(boards_arr):
+    def generate_children_boards(self, boards_arr):
         tmp_all_arr = []
         for board in boards_arr:
-            tmp_all_arr.extend(board.generate_children_for_board())
+            tmp_all_arr.extend(board.generate_children_for_board(self.k))
         return tmp_all_arr
 
     def solve_with_time(self, steps=True):

@@ -1,7 +1,8 @@
 import argparse
 import numpy as np
 
-import solver as sudoku_solver
+# import solver as sudoku_solver
+import solver_mod as sudoku_solver
 import plot as sudoku_plot
 
 # Экстремальный судоку, вариант №7
@@ -21,6 +22,7 @@ sudoku_table = np.array([
 
 
 def main(k=50):
+    # solver = sudoku_solver.SudokuSolver(sudoku_table, k)
     solver = sudoku_solver.SudokuSolver(sudoku_table, k)
     plotter = sudoku_plot.SudokuPlot.make_board_printer(solver.base_board.base)
 
