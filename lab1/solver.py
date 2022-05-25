@@ -33,8 +33,9 @@ class SudokuSolver:
 
             # Генерация k потомков текущего поколения
             tmp_all_arr = self.generate_children_boards(self.current_boards)
+
             # Обновляем их значения fitness и отбираем k досок
-            tmp_all_arr, _ = self.erase_boards(tmp_all_arr)
+            tmp_all_arr, _ = self.erase_boards(tmp_all_arr, prev_board)
 
             # Генерируем из полученного поколения еще k потомков
             next_tmp_all_arr = self.generate_children_boards(tmp_all_arr)
@@ -42,7 +43,7 @@ class SudokuSolver:
 
             prev_board = res_board
             # В общем полученном множестве отбираем k элементов
-            self.current_boards, res_board = self.erase_boards(tmp_all_arr)
+            self.current_boards, res_board = self.erase_boards(tmp_all_arr, prev_board)
             count += 1
 
         if count >= self.MAX_ITER_COUNT:
@@ -53,10 +54,13 @@ class SudokuSolver:
 
         return res_board.grid
 
-    def erase_boards(self, boards_arr):
+    def erase_boards(self, boards_arr, prev_board):
         self.union_boards(boards_arr)
         boards_arr.sort(key=lambda x: x.fitness)
         boards_arr = boards_arr[:self.k]
+
+        if len(boards_arr) == 0:
+            return boards_arr, prev_board
 
         return boards_arr, boards_arr[0]
 
