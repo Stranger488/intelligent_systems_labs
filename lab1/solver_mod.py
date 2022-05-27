@@ -1,5 +1,8 @@
 import random
 import time
+from multiprocessing import Pool
+from functools import partial
+import itertools
 
 import numpy as np
 
@@ -9,17 +12,19 @@ from board_mod import SudokuBoard
 
 # Алгоритм локального кооперативного k-лучевого поиска
 class SudokuSolver:
-    def __init__(self, base_sudoku, k):
+    def __init__(self, base_sudoku):
+        self.base = 3
+        self.dim = 9
+        self.pool_size = 4
         self.MAX_ITER_COUNT = 500
-        self.k = k
+        self.k = 9
 
         self.base_board = SudokuBoard(base_sudoku)
         if not self.base_board.is_valid():
             raise ValueError("Некорректный исходный судоку!")
 
-        self.base_board.initialize_board()
-        self.current_boards = [self.base_board, ]
-        self.base_board.permutate_board()
+        self.fixed_arr = self.base_board.initialize_board()
+        self.base_board.update_fitness()
 
     def solve(self, steps=True):
         count = 0
@@ -35,18 +40,13 @@ class SudokuSolver:
                 print("Значение эвристики: {}\n\n".format(res_board.fitness))
 
             # Генерация k потомков текущего поколения
-            tmp_all_arr = self.generate_children_boards(self.current_boards)
+            tmp_all_arr = self.generate_children_boards()
 
-            # Обновляем их значения fitness и отбираем k досок
-            tmp_all_arr, _ = self.erase_boards(tmp_all_arr, prev_board)
-
-            # Генерируем из полученного поколения еще k потомков
-            next_tmp_all_arr = self.generate_children_boards(tmp_all_arr)
-            tmp_all_arr.extend(next_tmp_all_arr)
-
-            prev_board = res_board
+            # prev_board = res_board
             # В общем полученном множестве отбираем k элементов
-            self.current_boards, res_board = self.erase_boards(tmp_all_arr, prev_board)
+            new_board = self.erase_boards(tmp_all_arr, prev_board)
+            if new_board.fitness < res_board.fitness + 15:
+                res_board = new_board
             count += 1
 
         if count >= self.MAX_ITER_COUNT:
@@ -58,14 +58,14 @@ class SudokuSolver:
         return res_board.grid
 
     def erase_boards(self, boards_arr, prev_board):
-        self.union_boards(boards_arr)
+        # self.union_boards(boards_arr)
         boards_arr.sort(key=lambda x: x.fitness)
         boards_arr = boards_arr[:self.k]
 
         if len(boards_arr) == 0:
-            return boards_arr, prev_board
+            return prev_board
 
-        return boards_arr, boards_arr[0]
+        return boards_arr[0]
 
     @staticmethod
     def union_boards(boards_arr):
@@ -75,11 +75,44 @@ class SudokuSolver:
                     if board_outer.equals(board_inner):
                         boards_arr.remove(board_inner)
 
-    def generate_children_boards(self, boards_arr):
+    def generate_children_boards(self):
         tmp_all_arr = []
-        for board in boards_arr:
-            tmp_all_arr.extend(board.generate_children_for_board(self.k))
+
+        with Pool(self.pool_size) as p:
+            res = p.map(self.generate_new_states, range(self.dim))
+            tmp_all_arr = [item for sublist in res for item in sublist]
+
         return tmp_all_arr
+
+    def generate_new_states(self, i):
+        # all_permut = list(itertools.permutations(self.fixed_arr[i]))
+
+        # all_permut = []
+        # for _ in range(self.k * self.k * self.k * self.k * self.k):
+        #     new_arr = self.fixed_arr[i][:]
+        #     random.shuffle(new_arr)
+        #     all_permut.append(new_arr)
+
+        all_permut = list(itertools.islice(itertools.permutations(self.fixed_arr[i]), 10000))
+        random.shuffle(self.fixed_arr[i])
+
+        new_boards = []
+
+        row_i = i // self.base
+        col_i = i % self.base
+        for permut in all_permut:
+            ind = 0
+            board = SudokuBoard(self.base_board.grid)
+            for square_row_i in range(row_i * self.base, (row_i + 1) * self.base):
+                for square_col_i in range(col_i * self.base, (col_i + 1) * self.base):
+                    value = board.grid[square_row_i][square_col_i]
+                    if value in permut:
+                        board.grid[square_row_i][square_col_i] = permut[ind]
+                        ind += 1
+            board.update_fitness()
+            new_boards.append(board)
+
+        return new_boards
 
     def solve_with_time(self, steps=True):
         ts = time.time()
