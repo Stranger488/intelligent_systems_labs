@@ -1,7 +1,7 @@
 import numpy as np
 
 import plot as sudoku_plot
-import solver_mod as sudoku_solver
+import solver_k as sudoku_solver
 
 # Экстремальный судоку, вариант №7
 sudoku_table = np.array([
