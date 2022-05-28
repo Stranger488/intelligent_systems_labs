@@ -1,8 +1,7 @@
-import argparse
 import numpy as np
 
-import solver as sudoku_solver
 import plot as sudoku_plot
+import solver_mod as sudoku_solver
 
 # Экстремальный судоку, вариант №7
 sudoku_table = np.array([
@@ -20,8 +19,8 @@ sudoku_table = np.array([
 ], dtype=int)
 
 
-def main(k=50):
-    solver = sudoku_solver.SudokuSolver(sudoku_table, k)
+def main():
+    solver = sudoku_solver.SudokuSolver(sudoku_table)
     plotter = sudoku_plot.SudokuPlot.make_board_printer(solver.base_board.base)
 
     print("Заданная судоку таблица: ")
@@ -36,9 +35,4 @@ def main(k=50):
 
 
 if __name__ == "__main__":
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--k', action='store', type=int,
-                            help='Параметр k алгоритма')
-    arguments = arg_parser.parse_args()
-
-    main(arguments.k)
+    main()
