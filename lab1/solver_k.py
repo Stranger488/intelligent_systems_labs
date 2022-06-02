@@ -19,8 +19,8 @@ class SudokuSolver:
 
         self.pool_size = 4
         self.MAX_ITER_COUNT = 500
-        self.k = 200
-        self.generations_size = 75
+        self.k = 400
+        self.generations_size = 100
 
         self.base_board = SudokuBoard(base_sudoku)
         if not self.base_board.is_valid():
