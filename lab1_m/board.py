@@ -8,14 +8,14 @@ class SudokuBoard:
         self.base = int(sqrt(len(self.grid[0])))
         self.dim = self.base * self.base
 
-        self.fixed = []
-
-        self.all_cands_arr = [(-1, -1, -1, 0) for _ in range(self.dim * self.dim)]
+        self.fixed = set()
         self.all_variants_arr = [[] for _ in range(self.dim)]
 
-        self.cur_grid_arr = []
-
         self.fitness = inf
+
+        self.most_constrained = (-1, -1)
+        self.constr_res_cands = [-1 for _ in range (self.dim + 1)]
+        self.constr_collisions = 82
 
     # Получить индексы первой ячейки квадрата, в котором находится переданная ячейка
     def get_square_i(self, row_i, col_i):
@@ -79,7 +79,7 @@ class SudokuBoard:
                     # Если там уже стоит значение больше 0, то цифра недоступна для вставки
                     if value > 0:
                         candidate_values[value - 1] = False
-                        self.fixed.append((square_row_i, square_col_i))
+                        self.fixed.add((square_row_i, square_col_i))
 
             # Массив кандидатов, если по индексу получили True, то цифра доступна для вставки
             result_candidates = self.get_result_candidates(candidate_values)
@@ -101,24 +101,26 @@ class SudokuBoard:
                     ind += 1
 
     def update_board_char(self):
+        # Рассматриваем каждую ячейку, кроме fixed
         for i in range(self.dim):
             for j in range(self.dim):
                 if (i, j) not in self.fixed:
-                    candidate_values, collisions = self.get_candidate_values_for_cell(i, j)
-                    result_candidates = self.get_result_candidates(candidate_values)
+                    result_candidates, collisions = self.get_candidate_values_for_cell(i, j)
 
-                    # Номер строки, номер столбца, массив кандидатов, число пересечений для ячейки
-                    self.all_cands_arr[i * self.dim + j] = (i, j, result_candidates, collisions)
+                    # Номер строки, номер столбца, число пересечений
+                    self.all_variants_arr[self.grid[i][j] - 1].append((i, j, collisions))
 
-                    # Номер строки, номер столбца, длина массива с кандидатами
-                    self.all_variants_arr[self.grid[i][j] - 1].append((i, j, len(result_candidates)))
+                    if len(result_candidates) < len(self.constr_res_cands):
+                        self.constr_collisions = collisions
+                        self.constr_res_cands = result_candidates
+                        self.most_constrained = (i, j)
 
     def update_fitness(self):
         # Выбрать все количество пересечений
-        arr_ = [el[3] for el in self.all_cands_arr]
+        arr_ = [r[2] for el in self.all_variants_arr for r in el]
 
         # Складываем длину массива кандидатов для самой ограниченной ячейки и общее число пересечений для каждой ячейки
-        self.fitness = len(self.get_most_constrained_cell()[2]) + sum(arr_)
+        self.fitness = 81 - len(self.fixed) + sum(arr_)
 
     @staticmethod
     def get_result_candidates(candidate_values):
@@ -138,7 +140,8 @@ class SudokuBoard:
                 value = self.grid[tmp_row_i][col_i]
                 if value == val:
                     collisions_for_cell += 1
-                    candidate_values[value - 1] = False
+                    if (tmp_row_i, col_i) in self.fixed:
+                        candidate_values[value - 1] = False
 
         # поиск по строке
         for tmp_col_i in range(self.dim):
@@ -146,7 +149,8 @@ class SudokuBoard:
                 value = self.grid[row_i][tmp_col_i]
                 if value == val:
                     collisions_for_cell += 1
-                    candidate_values[value - 1] = False
+                    if (row_i, tmp_col_i) in self.fixed:
+                        candidate_values[value - 1] = False
 
         square_row_i, square_col_i = self.get_square_i(row_i, col_i)
         # поиск по квадрату
@@ -156,22 +160,24 @@ class SudokuBoard:
                     value = self.grid[tmp_row_i][tmp_col_i]
                     if value == val:
                         collisions_for_cell += 1
-                    # Уникальность в квадрате
-                    candidate_values[value - 1] = False
+                        if (tmp_row_i, tmp_col_i) in self.fixed:
+                            candidate_values[value - 1] = False
 
-        return candidate_values, collisions_for_cell
+        result_candidates = self.get_result_candidates(candidate_values)
+
+        return result_candidates, collisions_for_cell
 
     def generate_children_for_board(self):
         tmp_boards_lst = []
 
-        min = self.get_most_constrained_cell()
-        for val in min[2]:
+        for cand in self.constr_res_cands:
             tmp_board = SudokuBoard(self.grid)
-            tmp_board.fixed = self.fixed
+            tmp_board.fixed = self.fixed.copy()
 
-            i, j, _ = self.get_cand_idx(val)
-            tmp_board.grid[i][j] = tmp_board.grid[min[0]][min[1]]
-            tmp_board.grid[min[0]][min[1]] = val
+            i, j, _ = self.get_cand_idx(cand)
+            tmp_board.grid[i][j] = tmp_board.grid[self.most_constrained[0]][self.most_constrained[1]]
+            tmp_board.grid[self.most_constrained[0]][self.most_constrained[1]] = cand
+            tmp_board.fixed.add(self.most_constrained)
 
             tmp_board.update_board_char()
             tmp_board.update_fitness()
@@ -179,11 +185,6 @@ class SudokuBoard:
             tmp_boards_lst.append(tmp_board)
 
         return tmp_boards_lst
-
-    def get_most_constrained_cell(self):
-        self.all_cands_arr.sort(key=lambda x: x[1])
-        filtered = list(filter(lambda el: el[0] != -1, self.all_cands_arr))
-        return filtered[0]
 
     def get_cand_idx(self, val):
         self.all_variants_arr[val - 1].sort(key=lambda x: x[2])

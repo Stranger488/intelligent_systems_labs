@@ -25,8 +25,8 @@ class SudokuSolver:
         res_board = self.base_board
         prev_board = None
 
-        while count < self.MAX_ITER_COUNT and res_board.fitness > 0 \
-                and not res_board.equals(prev_board):
+        while count < self.MAX_ITER_COUNT and res_board.fitness > 0:
+                # and not res_board.equals(prev_board):
             self.plotter(res_board.grid)
             print("Значение эвристики: {}\n\n".format(res_board.fitness))
 
