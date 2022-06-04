@@ -6,7 +6,7 @@ import plot as sudoku_plt
 
 class SudokuSolver:
     def __init__(self, base_grid, k):
-        self.MAX_ITER_COUNT = 500
+        self.MAX_ITER_COUNT = 5000
         self.k = k
 
         self.base_board = SudokuBoard(base_grid)

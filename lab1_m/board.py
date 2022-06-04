@@ -14,7 +14,7 @@ class SudokuBoard:
         self.fitness = inf
 
         self.most_constrained = (-1, -1)
-        self.constr_res_cands = [-1 for _ in range (self.dim + 1)]
+        self.constr_res_cands = [-1 for _ in range(self.dim + 1)]
         self.constr_collisions = 82
 
     # Получить индексы первой ячейки квадрата, в котором находится переданная ячейка
@@ -105,6 +105,8 @@ class SudokuBoard:
         for i in range(self.dim):
             for j in range(self.dim):
                 if (i, j) not in self.fixed:
+                    # result_candidates - смотрим только по fixed,
+                    # collisions - число пересечений смотрим по ВСЕМ ячейкам
                     result_candidates, collisions = self.get_candidate_values_for_cell(i, j)
 
                     # Номер строки, номер столбца, число пересечений
@@ -112,16 +114,17 @@ class SudokuBoard:
 
                     if len(result_candidates) < len(self.constr_res_cands):
                         self.constr_collisions = collisions
-                        self.constr_res_cands = result_candidates
                         self.most_constrained = (i, j)
+                        self.constr_res_cands = result_candidates
 
     def update_fitness(self):
         # Выбрать все количество пересечений
         arr_ = [r[2] for el in self.all_variants_arr for r in el]
 
         # Складываем длину массива кандидатов для самой ограниченной ячейки и общее число пересечений для каждой ячейки
-        self.fitness = 81 - len(self.fixed) + sum(arr_)
-
+        # self.fitness = 81 - len(self.fixed) + sum(arr_)
+        # self.fitness = 81 - len(self.fixed)
+        self.fitness = sum(arr_)
     @staticmethod
     def get_result_candidates(candidate_values):
         return [i + 1 for i, val in enumerate(candidate_values) if val]
@@ -138,19 +141,23 @@ class SudokuBoard:
         for tmp_row_i in range(self.dim):
             if tmp_row_i != row_i:
                 value = self.grid[tmp_row_i][col_i]
+                # Исключаем кандидата, беря во внимание только fixed
+                if (tmp_row_i, col_i) in self.fixed:
+                    candidate_values[value - 1] = False
+                # Для пересечений смотрим на все ячейки
                 if value == val:
                     collisions_for_cell += 1
-                    if (tmp_row_i, col_i) in self.fixed:
-                        candidate_values[value - 1] = False
 
         # поиск по строке
         for tmp_col_i in range(self.dim):
             if tmp_col_i != col_i:
                 value = self.grid[row_i][tmp_col_i]
+                # Исключаем кандидата, беря во внимание только fixed
+                if (row_i, tmp_col_i) in self.fixed:
+                    candidate_values[value - 1] = False
+                # Для пересечений смотрим на все ячейки
                 if value == val:
                     collisions_for_cell += 1
-                    if (row_i, tmp_col_i) in self.fixed:
-                        candidate_values[value - 1] = False
 
         square_row_i, square_col_i = self.get_square_i(row_i, col_i)
         # поиск по квадрату
@@ -158,10 +165,12 @@ class SudokuBoard:
             for tmp_col_i in range(square_col_i * self.base, (square_col_i + 1) * self.base):
                 if tmp_row_i != row_i and tmp_col_i != col_i:
                     value = self.grid[tmp_row_i][tmp_col_i]
+                    # Исключаем кандидата, беря во внимание только fixed
+                    if (tmp_row_i, tmp_col_i) in self.fixed:
+                        candidate_values[value - 1] = False
+                    # Для пересечений смотрим на все ячейки
                     if value == val:
                         collisions_for_cell += 1
-                        if (tmp_row_i, tmp_col_i) in self.fixed:
-                            candidate_values[value - 1] = False
 
         result_candidates = self.get_result_candidates(candidate_values)
 
@@ -187,8 +196,8 @@ class SudokuBoard:
         return tmp_boards_lst
 
     def get_cand_idx(self, val):
-        self.all_variants_arr[val - 1].sort(key=lambda x: x[2])
-        return self.all_variants_arr[val - 1][-1]
+        self.all_variants_arr[val - 1].sort(key=lambda x: -x[2])
+        return self.all_variants_arr[val - 1][0]
 
     def equals(self, board):
         if board is not None and self.check_grid_equals(board.grid) \
