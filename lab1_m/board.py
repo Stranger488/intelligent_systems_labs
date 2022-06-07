@@ -89,7 +89,7 @@ class SudokuBoard:
         # Перемешать кандидатов
         random.shuffle(result_candidates)
 
-        # Расставляем на место, где 0, кандидатов случайных в рамках каждого квадрата
+        # Расставляем на место, где 0 кандидатов случайных в рамках каждого квадрата
         ind = 0
         row_i = i // self.base
         col_i = i % self.base
@@ -123,8 +123,8 @@ class SudokuBoard:
 
         # Складываем длину массива кандидатов для самой ограниченной ячейки и общее число пересечений для каждой ячейки
         # self.fitness = 81 - len(self.fixed) + sum(arr_)
-        # self.fitness = 81 - len(self.fixed)
-        self.fitness = sum(arr_)
+        self.fitness = 81 - len(self.fixed)
+        # self.fitness = sum(arr_)
     @staticmethod
     def get_result_candidates(candidate_values):
         return [i + 1 for i, val in enumerate(candidate_values) if val]
@@ -180,18 +180,19 @@ class SudokuBoard:
         tmp_boards_lst = []
 
         for cand in self.constr_res_cands:
-            tmp_board = SudokuBoard(self.grid)
-            tmp_board.fixed = self.fixed.copy()
+            for i, j, _ in self.all_variants_arr[cand - 1]:
+                tmp_board = SudokuBoard(self.grid)
+                tmp_board.fixed = self.fixed.copy()
 
-            i, j, _ = self.get_cand_idx(cand)
-            tmp_board.grid[i][j] = tmp_board.grid[self.most_constrained[0]][self.most_constrained[1]]
-            tmp_board.grid[self.most_constrained[0]][self.most_constrained[1]] = cand
-            tmp_board.fixed.add(self.most_constrained)
+                i, j, _ = self.get_cand_idx(cand)
+                tmp_board.grid[i][j] = tmp_board.grid[self.most_constrained[0]][self.most_constrained[1]]
+                tmp_board.grid[self.most_constrained[0]][self.most_constrained[1]] = cand
+                tmp_board.fixed.add(self.most_constrained)
 
-            tmp_board.update_board_char()
-            tmp_board.update_fitness()
+                tmp_board.update_board_char()
+                tmp_board.update_fitness()
 
-            tmp_boards_lst.append(tmp_board)
+                tmp_boards_lst.append(tmp_board)
 
         return tmp_boards_lst
 

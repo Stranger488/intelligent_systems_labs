@@ -20,6 +20,8 @@ sudoku_table = np.array([
 
 
 def main(k=20):
+    # print(bcolors.WARNING + "Warning: No active frommets remain. Continue?" + bcolors.ENDC)
+
     solver = sudoku_solver.SudokuSolver(sudoku_table, k)
 
     print("Заданная судоку таблица: ")
