@@ -17,7 +17,7 @@ class SudokuSolver:
         self.dim = 9
         self.pool_size = 4
         self.MAX_ITER_COUNT = 1000
-        self.k = 10
+        self.k = 15
 
         self.base_board = SudokuBoard(base_sudoku)
         if not self.base_board.is_valid():
@@ -33,7 +33,9 @@ class SudokuSolver:
         return list(itertools.permutations(self.candidates_arr[i]))
 
     def gen_permut_for_block(self, i):
-        return list(itertools.islice(itertools.permutations(self.candidates_arr[i]), 1000))
+        l = list(itertools.islice(itertools.permutations(self.candidates_arr[i]), 1000))
+        lst = [list(permut) for permut in l]
+        return lst
 
     def solve(self, steps=True):
         count = 0
@@ -56,12 +58,17 @@ class SudokuSolver:
             # Генерация потомков текущего поколения
             self.boards_all.extend(self.generate_new_boards())
 
-            # prev_board = res_board
+            prev_board = res_board
             # В общем полученном множестве отбираем k элементов
             new_board = self.erase_boards(prev_board)
             if new_board.fitness < res_board.fitness:
                 res_board = new_board
             count += 1
+
+            if prev_board.fitness == res_board.fitness:
+                for perm in self.perm_all:
+                    for p in perm:
+                        random.shuffle(p)
 
         if count >= self.MAX_ITER_COUNT:
             raise ValueError("Невозможно решить заданный судоку")
@@ -97,12 +104,11 @@ class SudokuSolver:
         #     rr = [item for sublist in res_all for item in sublist]
 
         for board_ind, board in enumerate(self.boards_all):
-            for i in range(self.dim):
-                res_all.extend(self.thread_func(board_ind))
-                # with Pool(self.pool_size) as p:
-                #     func = partial(self.generate_new_board, board, i)
-                #     res = p.map(func, range(len(self.perm_all[i])))
-                #     res_all.extend(res)
+            res_all.extend(self.thread_func(board_ind))
+            # with Pool(self.pool_size) as p:
+            #     func = partial(self.generate_new_board, board, i)
+            #     res = p.map(func, range(len(self.perm_all[i])))
+            #     res_all.extend(res)
 
         return res_all
 
