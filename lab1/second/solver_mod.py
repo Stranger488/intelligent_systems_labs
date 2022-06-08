@@ -6,7 +6,7 @@ import itertools
 import numpy as np
 
 import plot as sudoku_plt
-from lab1.second.board_mod import SudokuBoard
+from board_mod import SudokuBoard
 
 
 # Алгоритм локального кооперативного k-лучевого поиска
@@ -22,7 +22,7 @@ class SudokuSolver:
         if not self.base_board.is_valid():
             raise ValueError("Некорректный исходный судоку!")
 
-        self.fixed_arr = self.base_board.initialize_board()
+        self.candidates_arr = self.base_board.initialize_board()
         self.base_board.update_fitness()
 
     def solve(self, steps=True):
@@ -44,7 +44,7 @@ class SudokuSolver:
             # prev_board = res_board
             # В общем полученном множестве отбираем k элементов
             new_board = self.erase_boards(tmp_all_arr, prev_board)
-            if new_board.fitness < res_board.fitness + 15:
+            if new_board.fitness < res_board.fitness:
                 res_board = new_board
             count += 1
 
@@ -84,16 +84,15 @@ class SudokuSolver:
         return tmp_all_arr
 
     def generate_new_states(self, i):
-        # all_permut = list(itertools.permutations(self.fixed_arr[i]))
+        all_permut = list(itertools.permutations(self.candidates_arr[i]))
 
         # all_permut = []
         # for _ in range(self.k * self.k * self.k * self.k * self.k):
         #     new_arr = self.fixed_arr[i][:]
         #     random.shuffle(new_arr)
         #     all_permut.append(new_arr)
-
-        all_permut = list(itertools.islice(itertools.permutations(self.fixed_arr[i]), 10000))
-        random.shuffle(self.fixed_arr[i])
+        # all_permut = list(itertools.islice(itertools.permutations(self.fixed_arr[i]), 10000))
+        # random.shuffle(self.candidates_arr[i])
 
         new_boards = []
 
