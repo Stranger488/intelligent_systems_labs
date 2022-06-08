@@ -2,6 +2,7 @@ import random
 import time
 from multiprocessing import Pool
 import itertools
+from functools import partial
 
 import numpy as np
 
@@ -15,8 +16,8 @@ class SudokuSolver:
         self.base = 3
         self.dim = 9
         self.pool_size = 4
-        self.MAX_ITER_COUNT = 500
-        self.k = 9
+        self.MAX_ITER_COUNT = 1000
+        self.k = 10
 
         self.base_board = SudokuBoard(base_sudoku)
         if not self.base_board.is_valid():
@@ -25,25 +26,37 @@ class SudokuSolver:
         self.candidates_arr = self.base_board.initialize_board()
         self.base_board.update_fitness()
 
+        self.perm_all = []
+        self.boards_all = [self.base_board, ]
+
+    def gen_all_permut_for_block(self, i):
+        return list(itertools.permutations(self.candidates_arr[i]))
+
     def solve(self, steps=True):
         count = 0
         res_board = self.base_board
         prev_board = SudokuBoard(np.full((self.base_board.dim, self.base_board.dim), -1, dtype=int))
 
-        while count < self.MAX_ITER_COUNT and res_board.fitness > 0 \
-                and not res_board.equals(prev_board):
+        # with Pool(self.pool_size) as p:
+        #     self.perm_all = p.map(self.gen_all_permut_for_block, range(self.dim))
+
+        self.perm_all = [[] for _ in range(self.dim)]
+        for i in range(self.dim):
+            self.perm_all[i] = self.gen_all_permut_for_block(i)
+
+        while count < self.MAX_ITER_COUNT and res_board.fitness > 0:
             if steps:
                 print("Решение на текущем этапе: ")
                 plotter = sudoku_plt.SudokuPlot.make_board_printer(res_board.base)
                 plotter(res_board.grid)
                 print("Значение эвристики: {}\n\n".format(res_board.fitness))
 
-            # Генерация k потомков текущего поколения
-            tmp_all_arr = self.generate_children_boards()
+            # Генерация потомков текущего поколения
+            self.boards_all.extend(self.generate_new_boards())
 
             # prev_board = res_board
             # В общем полученном множестве отбираем k элементов
-            new_board = self.erase_boards(tmp_all_arr, prev_board)
+            new_board = self.erase_boards(prev_board)
             if new_board.fitness < res_board.fitness:
                 res_board = new_board
             count += 1
@@ -56,15 +69,15 @@ class SudokuSolver:
 
         return res_board.grid
 
-    def erase_boards(self, boards_arr, prev_board):
+    def erase_boards(self, prev_board):
         # self.union_boards(boards_arr)
-        boards_arr.sort(key=lambda x: x.fitness)
-        boards_arr = boards_arr[:self.k]
+        self.boards_all.sort(key=lambda x: x.fitness)
+        self.boards_all = self.boards_all[:self.k]
 
-        if len(boards_arr) == 0:
+        if len(self.boards_all) == 0:
             return prev_board
 
-        return boards_arr[0]
+        return self.boards_all[0]
 
     @staticmethod
     def union_boards(boards_arr):
@@ -74,43 +87,37 @@ class SudokuSolver:
                     if board_outer.equals(board_inner):
                         boards_arr.remove(board_inner)
 
-    def generate_children_boards(self):
-        tmp_all_arr = []
+    def generate_new_boards(self):
+        res_all = []
 
-        with Pool(self.pool_size) as p:
-            res = p.map(self.generate_new_states, range(self.dim))
-            tmp_all_arr = [item for sublist in res for item in sublist]
+        for board in self.boards_all:
+            for i in range(self.dim):
+                # with Pool(self.pool_size) as p:
+                #     func = partial(self.generate_new_board, i)
+                #     res = p.map(func, range(len(self.perm_all[i])))
+                #     res_all.extend(res)
 
-        return tmp_all_arr
+                for j, perm in enumerate(self.perm_all[i]):
+                    res_all.append(self.generate_new_board(board, i, j))
+        return res_all
 
-    def generate_new_states(self, i):
-        all_permut = list(itertools.permutations(self.candidates_arr[i]))
+    def generate_new_board(self, board, ind, j):
+        cur_perm = self.perm_all[ind][j]
 
-        # all_permut = []
-        # for _ in range(self.k * self.k * self.k * self.k * self.k):
-        #     new_arr = self.fixed_arr[i][:]
-        #     random.shuffle(new_arr)
-        #     all_permut.append(new_arr)
-        # all_permut = list(itertools.islice(itertools.permutations(self.fixed_arr[i]), 10000))
-        # random.shuffle(self.candidates_arr[i])
+        row_i = ind // self.base
+        col_i = ind % self.base
 
-        new_boards = []
+        index = 0
+        board = SudokuBoard(board.grid)
+        for square_row_i in range(row_i * self.base, (row_i + 1) * self.base):
+            for square_col_i in range(col_i * self.base, (col_i + 1) * self.base):
+                value = board.grid[square_row_i][square_col_i]
+                if value in cur_perm:
+                    board.grid[square_row_i][square_col_i] = cur_perm[index]
+                    index += 1
+        board.update_fitness()
 
-        row_i = i // self.base
-        col_i = i % self.base
-        for permut in all_permut:
-            ind = 0
-            board = SudokuBoard(self.base_board.grid)
-            for square_row_i in range(row_i * self.base, (row_i + 1) * self.base):
-                for square_col_i in range(col_i * self.base, (col_i + 1) * self.base):
-                    value = board.grid[square_row_i][square_col_i]
-                    if value in permut:
-                        board.grid[square_row_i][square_col_i] = permut[ind]
-                        ind += 1
-            board.update_fitness()
-            new_boards.append(board)
-
-        return new_boards
+        return board
 
     def solve_with_time(self, steps=True):
         ts = time.time()
