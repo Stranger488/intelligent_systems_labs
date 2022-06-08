@@ -26,11 +26,14 @@ class SudokuSolver:
         self.candidates_arr = self.base_board.initialize_board()
         self.base_board.update_fitness()
 
-        self.perm_all = []
+        self.perm_all = [[] for _ in range(self.dim)]
         self.boards_all = [self.base_board, ]
 
     def gen_all_permut_for_block(self, i):
         return list(itertools.permutations(self.candidates_arr[i]))
+
+    def gen_permut_for_block(self, i):
+        return list(itertools.islice(itertools.permutations(self.candidates_arr[i]), 1000))
 
     def solve(self, steps=True):
         count = 0
@@ -40,9 +43,8 @@ class SudokuSolver:
         # with Pool(self.pool_size) as p:
         #     self.perm_all = p.map(self.gen_all_permut_for_block, range(self.dim))
 
-        self.perm_all = [[] for _ in range(self.dim)]
         for i in range(self.dim):
-            self.perm_all[i] = self.gen_all_permut_for_block(i)
+            self.perm_all[i] = self.gen_permut_for_block(i)
 
         while count < self.MAX_ITER_COUNT and res_board.fitness > 0:
             if steps:
@@ -90,16 +92,26 @@ class SudokuSolver:
     def generate_new_boards(self):
         res_all = []
 
-        for board in self.boards_all:
+        # with Pool(self.pool_size) as p:
+        #     res_all = p.map(self.thread_func, range(len(self.boards_all)))
+        #     rr = [item for sublist in res_all for item in sublist]
+
+        for board_ind, board in enumerate(self.boards_all):
             for i in range(self.dim):
+                res_all.extend(self.thread_func(board_ind))
                 # with Pool(self.pool_size) as p:
-                #     func = partial(self.generate_new_board, i)
+                #     func = partial(self.generate_new_board, board, i)
                 #     res = p.map(func, range(len(self.perm_all[i])))
                 #     res_all.extend(res)
 
-                for j, perm in enumerate(self.perm_all[i]):
-                    res_all.append(self.generate_new_board(board, i, j))
         return res_all
+
+    def thread_func(self, board_ind):
+        r = []
+        for i in range(self.dim):
+            for j, perm in enumerate(self.perm_all[i]):
+                r.append(self.generate_new_board(self.boards_all[board_ind], i, j))
+        return r
 
     def generate_new_board(self, board, ind, j):
         cur_perm = self.perm_all[ind][j]
